@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Catálogo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Gerador de Catálogo</h1>
+      <button id="btn-settings" class="btn-icon" title="Configurações da API">&#9881;</button>
+    </header>
+
+    <!-- MODAL DE CONFIGURAÇÕES -->
+    <div id="modal-settings" class="modal" style="display:none">
+      <div class="modal-overlay" id="overlay-settings"></div>
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2>Configurações da API Tray</h2>
+          <button class="btn-close" id="btn-close-settings">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="field full">
+              <label>URL da loja</label>
+              <input id="s-url" type="text" placeholder="sualoja.com.br/web_api" />
+            </div>
+            <div class="field">
+              <label>Consumer Key</label>
+              <input id="s-key" type="text" />
+            </div>
+            <div class="field">
+              <label>Consumer Secret</label>
+              <input id="s-secret" type="password" placeholder="••••••••" />
+            </div>
+            <div class="field">
+              <label>Code (autorização permanente)</label>
+              <input id="s-code" type="text" />
+            </div>
+            <div class="field">
+              <label>Refresh Token <span class="label-hint">(preenchido automaticamente)</span></label>
+              <input id="s-refresh" type="text" placeholder="gerado após primeira conexão" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-settings" class="btn-primary">Salvar configurações</button>
+          <button id="btn-connect" class="btn-secondary">Conectar à Tray</button>
+          <span id="status-connect" class="status"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRINCIPAL -->
+    <section class="card" id="section-main">
+      <div class="main-top">
+        <div class="field" style="flex:1">
+          <label>Tipo de catálogo</label>
+          <select id="tipo">
+            <option value="com-preco">Com Preço</option>
+            <option value="sem-preco">Sem Preço</option>
+            <option value="cards">Cards (grade 3×4)</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1">
+          <label>Categoria</label>
+          <select id="categoria">
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+        <div class="field" style="flex:0">
+          <label>&nbsp;</label>
+          <button id="btn-sync" class="btn-secondary" title="Sincronizar categorias da Tray">&#8635; Sincronizar categorias</button>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:16px">
+        <button id="btn-gerar" class="btn-primary">Gerar Catálogo</button>
+        <span id="status-connect-main" class="status"></span>
+      </div>
+    </section>
+
+    <!-- PROGRESSO -->
+    <div id="progress-area" style="display:none" class="card">
+      <div class="progress-bar-wrap"><div id="progress-bar" class="progress-bar"></div></div>
+      <p id="progress-msg">Aguardando...</p>
+    </div>
+
+    <!-- RESULTADOS -->
+    <section id="section-resultado" style="display:none" class="card">
+      <h2>Catálogos gerados</h2>
+      <div id="lista-catalogos"></div>
+    </section>
+
+    <!-- PREVIEW MODAL -->
+    <div id="modal-preview" style="display:none">
+      <div class="modal-overlay" id="overlay-preview"></div>
+      <div class="modal-preview-content">
+        <button class="btn-close" id="btn-close-preview">&#x2715;</button>
+        <iframe id="preview-frame" src="about:blank"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
