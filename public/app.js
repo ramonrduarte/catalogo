@@ -207,30 +207,60 @@ function ordenar(arr) {
 
 const CSS_TABLE = `
   body{font-family:Arial,sans-serif;margin:0;padding:20px}
-  h2{background:#004080;color:#fff;padding:10px 14px;font-size:20px;margin:0 0 16px;page-break-after:avoid}
-  h3{color:#004080;font-size:15px;margin:28px 0 4px;page-break-after:avoid}
-  h4{font-style:italic;color:#666;font-size:12px;margin:4px 0 8px;page-break-after:avoid}
-  table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:24px}
+  h2{background:#004080;color:#fff;padding:10px 14px;font-size:20px;margin:0 0 16px;
+     page-break-after:avoid;break-after:avoid}
+  h3{color:#004080;font-size:15px;margin:24px 0 0;
+     page-break-after:avoid;break-after:avoid}
+  h4{font-style:italic;color:#666;font-size:12px;margin:2px 0 0;
+     page-break-after:avoid;break-after:avoid}
+  table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:20px;margin-top:6px}
   th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:middle}
   th{background:#f0f0f0;font-weight:700;text-align:left}
   td img{width:60px;height:60px;object-fit:contain}
+  tr{page-break-inside:avoid;break-inside:avoid}
+  /* Impede que a tabela comece uma nova página logo após um cabeçalho */
+  h3+table,h4+table{page-break-before:avoid;break-before:avoid}
+  /* Wrapper que mantém cabeçalho junto com a primeira linha de conteúdo */
+  .secao{page-break-inside:avoid;break-inside:avoid}
 `;
+
+function buildTableRows(rows) {
+  return rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("");
+}
 
 function buildTable(headers, rows) {
   const ths = headers.map((h) => `<th>${h}</th>`).join("");
-  const trs = rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("");
+  const trs = buildTableRows(rows);
   return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
 }
 
+// Garante que o cabeçalho da seção nunca fica sozinho no final de uma página:
+// envolve o cabeçalho + thead + primeira linha em .secao (break-inside:avoid).
+// As linhas restantes fluem normalmente — tabelas longas podem quebrar no meio.
 function tableSection(itens, headers, rowFn) {
   const grupos = agruparPor(itens, "subcategoria");
+  const ths = headers.map((h) => `<th>${h}</th>`).join("");
   let out = "";
+
   for (const [sub, grupo] of Object.entries(grupos)) {
     const subSubs = agruparPor(grupo, "subsubcategoria");
     for (const [subsub, lista] of Object.entries(subSubs)) {
-      if (sub && sub !== "Sem Categoria")    out += `<h3>${sub}</h3>`;
-      if (subsub && subsub !== "Sem Categoria") out += `<h4>${subsub}</h4>`;
-      out += buildTable(headers, ordenar(lista).map(rowFn));
+      const sorted = ordenar(lista);
+      if (!sorted.length) continue;
+
+      const allRows = sorted.map(rowFn);
+      let headerHtml = "";
+      if (sub && sub !== "Sem Categoria")    headerHtml += `<h3>${sub}</h3>`;
+      if (subsub && subsub !== "Sem Categoria") headerHtml += `<h4>${subsub}</h4>`;
+
+      // Primeira linha + cabeçalhos dentro do wrapper para evitar header órfão
+      const firstRow = `<tr>${allRows[0].map((c) => `<td>${c}</td>`).join("")}</tr>`;
+      out += `<div class="secao">${headerHtml}<table><thead><tr>${ths}</tr></thead><tbody>${firstRow}</tbody></table></div>`;
+
+      // Linhas restantes na mesma tabela visual (sem thead, apenas tbody)
+      if (allRows.length > 1) {
+        out += `<table style="margin-top:-21px;margin-bottom:20px"><tbody>${buildTableRows(allRows.slice(1))}</tbody></table>`;
+      }
     }
   }
   return out;
@@ -242,7 +272,7 @@ function htmlComPreco(cat, itens) {
     (p) => [
       p.codigo, p.descricao,
       Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
-      `<img src="${p.imagem}" alt="${p.codigo}"/>`,
+      `<img src="${p.imagem}" alt=""/>`,
     ]
   );
   return `<html><head><style>${CSS_TABLE}</style></head><body><h2>${cat}</h2>${rows}</body></html>`;
@@ -251,54 +281,59 @@ function htmlComPreco(cat, itens) {
 function htmlSemPreco(cat, itens) {
   const rows = tableSection(itens,
     ["Código", "Descrição", "Imagem"],
-    (p) => [p.codigo, p.descricao, `<img src="${p.imagem}" alt="${p.codigo}"/>`]
+    (p) => [p.codigo, p.descricao, `<img src="${p.imagem}" alt=""/>`]
   );
   return `<html><head><style>${CSS_TABLE}</style></head><body><h2>${cat}</h2>${rows}</body></html>`;
 }
 
-// Cards: 3 por linha, 4 linhas por página (= 12 cards por página)
+// Cards: 3 por coluna, CSS controla quebra de página (sem contagem manual)
 function htmlCards(cat, itens) {
   const CSS = `
     body{font-family:Arial,sans-serif;margin:20px;padding:0}
-    h2{background:#004080;color:#fff;padding:10px 14px;font-size:20px;margin:0 0 16px;page-break-after:avoid}
-    h3{color:#004080;font-size:15px;margin:28px 0 4px;page-break-after:avoid}
-    h4{font-style:italic;color:#666;font-size:12px;margin:4px 0 10px;page-break-after:avoid}
-    .row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;page-break-inside:avoid}
+    h2{background:#004080;color:#fff;padding:10px 14px;font-size:20px;margin:0 0 16px;
+       page-break-after:avoid;break-after:avoid}
+    h3{color:#004080;font-size:15px;margin:20px 0 2px;
+       page-break-after:avoid;break-after:avoid}
+    h4{font-style:italic;color:#666;font-size:12px;margin:2px 0 6px;
+       page-break-after:avoid;break-after:avoid}
+    .row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;
+         page-break-inside:avoid;break-inside:avoid}
     .card{border:1px solid #ccc;border-radius:5px;padding:8px;text-align:center;background:#fafafa}
-    .card img{max-width:100%;max-height:140px;object-fit:contain;margin-bottom:6px}
+    .card img{max-width:100%;max-height:130px;object-fit:contain;margin-bottom:6px}
     .cod{font-weight:700;font-size:12px;margin-bottom:3px}
     .desc{font-size:11px;color:#333}
-    .page-break{page-break-after:always}
+    /* Wrapper que mantém o cabeçalho colado à primeira linha de cards */
+    .secao{page-break-inside:avoid;break-inside:avoid}
   `;
 
   const grupos = agruparPor(itens, "subcategoria");
   let content = "";
-  let rowsOnPage = 0;
 
   for (const [sub, grupo] of Object.entries(grupos)) {
     const subSubs = agruparPor(grupo, "subsubcategoria");
     for (const [subsub, lista] of Object.entries(subSubs)) {
-      // Cabeçalhos de seção contam como 1 linha
-      if (sub && sub !== "Sem Categoria") {
-        if (rowsOnPage >= 4) { content += `<div class="page-break"></div>`; rowsOnPage = 0; }
-        content += `<h3>${sub}</h3>`;
-        rowsOnPage++;
-      }
-      if (subsub && subsub !== "Sem Categoria") {
-        content += `<h4>${subsub}</h4>`;
-      }
-
       const sorted = ordenar(lista);
-      for (let i = 0; i < sorted.length; i += 3) {
-        if (rowsOnPage >= 4) { content += `<div class="page-break"></div>`; rowsOnPage = 0; }
-        const chunk = sorted.slice(i, i + 3);
+      if (!sorted.length) continue;
+
+      // Monta todas as linhas de 3 cards
+      const buildRow = (chunk) => {
         const cells = chunk.map((p) =>
-          `<div class="card"><img src="${p.imagem}" alt="${p.codigo}"/><div class="cod">${p.codigo}</div><div class="desc">${p.descricao}</div></div>`
+          `<div class="card"><img src="${p.imagem}" alt=""/><div class="cod">${p.codigo}</div><div class="desc">${p.descricao}</div></div>`
         ).join("");
-        // Preenche colunas vazias
-        const empty = Array(3 - chunk.length).fill(`<div class="card" style="border:none;background:none"></div>`).join("");
-        content += `<div class="row">${cells}${empty}</div>`;
-        rowsOnPage++;
+        const pad = Array(3 - chunk.length).fill(`<div class="card" style="border:none;background:none"></div>`).join("");
+        return `<div class="row">${cells}${pad}</div>`;
+      };
+
+      let headerHtml = "";
+      if (sub && sub !== "Sem Categoria")       headerHtml += `<h3>${sub}</h3>`;
+      if (subsub && subsub !== "Sem Categoria")  headerHtml += `<h4>${subsub}</h4>`;
+
+      // Primeira linha junto com o cabeçalho: nunca ficam separados
+      content += `<div class="secao">${headerHtml}${buildRow(sorted.slice(0, 3))}</div>`;
+
+      // Linhas restantes fluem normalmente; CSS evita quebra dentro de cada linha
+      for (let i = 3; i < sorted.length; i += 3) {
+        content += buildRow(sorted.slice(i, i + 3));
       }
     }
   }
