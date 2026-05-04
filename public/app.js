@@ -166,21 +166,11 @@ function renderResultados(catalogos) {
     item.innerHTML = `
       <span class="catalogo-nome">${categoria}</span>
       <div class="catalogo-actions">
-        <button class="btn-preview-sm" data-idx="${i}">Visualizar</button>
         <a class="btn-download" href="${url}" download="${categoria}.pdf">&#11015; Baixar PDF</a>
       </div>`;
     lista.appendChild(item);
-    item.querySelector("[data-idx]").addEventListener("click", () => abrirPreview(html));
   }
 }
-
-function abrirPreview(html) {
-  el("preview-frame").srcdoc = html;
-  show("modal-preview");
-}
-
-el("btn-close-preview").addEventListener("click",  () => hide("modal-preview"));
-el("overlay-preview").addEventListener("click", () => hide("modal-preview"));
 
 // ─── Geradores de HTML ────────────────────────────────────────────────────────
 function gerarHTMLs(produtos, tipo) {
