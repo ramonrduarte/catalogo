@@ -206,61 +206,60 @@ function ordenar(arr) {
 }
 
 const CSS_TABLE = `
-  body{font-family:Arial,sans-serif;margin:0;padding:20px}
-  h2{background:#004080;color:#fff;padding:10px 14px;font-size:20px;margin:0 0 16px;
+  *{box-sizing:border-box}
+  body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#1a202c}
+  h2{background:#004080;color:#fff;padding:10px 14px;font-size:19px;margin:0 0 14px;
+     border-radius:3px;page-break-after:avoid;break-after:avoid}
+  h3{color:#004080;font-size:13px;font-weight:700;margin:20px 0 0;
+     padding-bottom:3px;border-bottom:2px solid #004080;
      page-break-after:avoid;break-after:avoid}
-  h3{color:#004080;font-size:15px;margin:24px 0 0;
+  h4{font-style:italic;color:#555;font-size:11px;margin:2px 0 0;
      page-break-after:avoid;break-after:avoid}
-  h4{font-style:italic;color:#666;font-size:12px;margin:2px 0 0;
-     page-break-after:avoid;break-after:avoid}
-  table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:20px;margin-top:6px}
-  th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:middle}
-  th{background:#f0f0f0;font-weight:700;text-align:left}
-  td img{width:60px;height:60px;object-fit:contain}
+  table{width:100%;border-collapse:collapse;font-size:11px;
+        margin-top:5px;margin-bottom:18px;table-layout:fixed}
+  col.c-cod{width:82px}
+  col.c-pre{width:88px}
+  col.c-img{width:100px}
+  th{background:#e6eef7;color:#004080;font-weight:700;text-align:left;
+     border:1px solid #c5d5e8;padding:6px 8px}
+  td{border:1px solid #dde5ef;padding:5px 8px;vertical-align:middle;
+     overflow:hidden;word-break:break-word}
+  tr:nth-child(even) td{background:#f5f8fc}
+  td.td-img{text-align:center;padding:4px;border-left:1px solid #c5d5e8}
+  td img{max-width:88px;max-height:84px;object-fit:contain;
+         display:block;margin:0 auto}
   tr{page-break-inside:avoid;break-inside:avoid}
-  /* Impede que a tabela comece uma nova página logo após um cabeçalho */
-  h3+table,h4+table{page-break-before:avoid;break-before:avoid}
-  /* Wrapper que mantém cabeçalho junto com a primeira linha de conteúdo */
-  .secao{page-break-inside:avoid;break-inside:avoid}
+  /* Mantém cabeçalho de seção junto com o início da tabela */
+  h3+table,h4+table{page-break-before:avoid;break-before:avoid;margin-top:4px}
 `;
 
-function buildTableRows(rows) {
-  return rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("");
+// colgroup garante larguras de coluna idênticas em todas as tabelas
+function colgroup(ncols) {
+  if (ncols === 3) return `<colgroup><col class="c-cod"><col><col class="c-img"></colgroup>`;
+  return `<colgroup><col class="c-cod"><col><col class="c-pre"><col class="c-img"></colgroup>`;
 }
 
 function buildTable(headers, rows) {
   const ths = headers.map((h) => `<th>${h}</th>`).join("");
-  const trs = buildTableRows(rows);
-  return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+  const trs = rows.map((r) =>
+    `<tr>${r.map((c, i) => `<td${i === r.length - 1 ? ' class="td-img"' : ""}>${c}</td>`).join("")}</tr>`
+  ).join("");
+  return `<table>${colgroup(headers.length)}<thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
 }
 
-// Garante que o cabeçalho da seção nunca fica sozinho no final de uma página:
-// envolve o cabeçalho + thead + primeira linha em .secao (break-inside:avoid).
-// As linhas restantes fluem normalmente — tabelas longas podem quebrar no meio.
+// Tabela única por seção — colunas sempre alinhadas, sem artefatos visuais.
+// Orphan-prevention: CSS break-after:avoid em h3/h4 + break-before:avoid na tabela.
 function tableSection(itens, headers, rowFn) {
   const grupos = agruparPor(itens, "subcategoria");
-  const ths = headers.map((h) => `<th>${h}</th>`).join("");
   let out = "";
-
   for (const [sub, grupo] of Object.entries(grupos)) {
     const subSubs = agruparPor(grupo, "subsubcategoria");
     for (const [subsub, lista] of Object.entries(subSubs)) {
       const sorted = ordenar(lista);
       if (!sorted.length) continue;
-
-      const allRows = sorted.map(rowFn);
-      let headerHtml = "";
-      if (sub && sub !== "Sem Categoria")    headerHtml += `<h3>${sub}</h3>`;
-      if (subsub && subsub !== "Sem Categoria") headerHtml += `<h4>${subsub}</h4>`;
-
-      // Primeira linha + cabeçalhos dentro do wrapper para evitar header órfão
-      const firstRow = `<tr>${allRows[0].map((c) => `<td>${c}</td>`).join("")}</tr>`;
-      out += `<div class="secao">${headerHtml}<table><thead><tr>${ths}</tr></thead><tbody>${firstRow}</tbody></table></div>`;
-
-      // Linhas restantes na mesma tabela visual (sem thead, apenas tbody)
-      if (allRows.length > 1) {
-        out += `<table style="margin-top:-21px;margin-bottom:20px"><tbody>${buildTableRows(allRows.slice(1))}</tbody></table>`;
-      }
+      if (sub && sub !== "Sem Categoria")       out += `<h3>${sub}</h3>`;
+      if (subsub && subsub !== "Sem Categoria")  out += `<h4>${subsub}</h4>`;
+      out += buildTable(headers, sorted.map(rowFn));
     }
   }
   return out;
@@ -275,7 +274,7 @@ function htmlComPreco(cat, itens) {
       `<img src="${p.imagem}" alt=""/>`,
     ]
   );
-  return `<html><head><style>${CSS_TABLE}</style></head><body><h2>${cat}</h2>${rows}</body></html>`;
+  return `<html><head><meta charset="UTF-8"><style>${CSS_TABLE}</style></head><body><h2>${cat}</h2>${rows}</body></html>`;
 }
 
 function htmlSemPreco(cat, itens) {
@@ -283,7 +282,7 @@ function htmlSemPreco(cat, itens) {
     ["Código", "Descrição", "Imagem"],
     (p) => [p.codigo, p.descricao, `<img src="${p.imagem}" alt=""/>`]
   );
-  return `<html><head><style>${CSS_TABLE}</style></head><body><h2>${cat}</h2>${rows}</body></html>`;
+  return `<html><head><meta charset="UTF-8"><style>${CSS_TABLE}</style></head><body><h2>${cat}</h2>${rows}</body></html>`;
 }
 
 // Cards: 3 por coluna, CSS controla quebra de página (sem contagem manual)
